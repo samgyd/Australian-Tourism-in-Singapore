@@ -1,0 +1,226 @@
+---
+title: "Australian Tourism in Singapore"
+author: "490402177"
+subtitle: "Project 3"
+date: "University of Sydney | DATA1001 | April 2020"
+output:
+  html_document:
+    fig_caption: yes
+    number_sections: yes
+    self_contained: yes
+    theme: flatly
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    code_folding: hide
+---
+
+<br>
+
+# Recommendation
+
+Addressing Neil Rodgers, managing director of Adventure World Travel. Analysis of flight data has revealed that a large portion of Australians travel to Singapore, with increases being observed over time. Expansion into the Singaporean sector will therefore foster growth in the business and will greatly benefit Australian tourists.
+
+<br>
+
+# Evidence
+```{r, message=FALSE}
+library(tidyverse)
+library(plotly)
+```
+
+```{r, results = 'hide'}
+# Read in your data
+
+## Option 1: International Airlines operating from Australia
+flights = read.csv("http://www.maths.usyd.edu.au/u/UG/JM/DATA1001/r/current/projects/2020data/flights.csv")
+
+## Quick snapshot
+dim(flights)
+str(flights)
+```
+
+Data collected by the Bureau of Infrastructure and Transport Research Economics (https://data.gov.au/dataset/ds-dga-e82787e4-a480-4189-b963-1d0b6088103e/details) contains 15 different variables on the international flights to and from Australia between 2003 to March of 2018. 89312 observations were recorded. The variables include:
+
+- Month
+- Year
+- Direction of travel (inbound or outbound)
+- Australian city
+- International city
+- Airline
+- Route
+- Port country and region
+- Service country and region
+- Number of stops
+- All flights
+- Max seats
+
+```{r}
+departure = flights %>%
+  filter(In_Out == "O")
+
+total = sum(departure$All_Flights)
+
+s = aggregate(departure$All_Flights, by=list(Category=departure$Port_Region), FUN=sum)
+total = sum(departure$All_Flights)
+
+Proportion = c(s$x[s$Category == "SE Asia"], s$x[s$Category == "NE Asia"], s$x[s$Category == "S Asia"], s$x[s$Category == "Africa"], s$x[s$Category == "Europe"], s$x[s$Category == "Islands"], s$x[s$Category == "Middle East"],s$x[s$Category == "N America"], s$x[s$Category == "S America"], s$x[s$Category == "New Zealand"])*100/total
+
+Region = c("SE Asia", "NE Asia", "S Asia", "Africa", "Europe", "Islands", "Middle East", "N America", "S America", "New Zealand")
+
+#creating data frame
+df1 = data.frame(Region, Proportion)
+
+#order regions
+df1$Region = factor(df1$Region, levels=c("N America", "S America", "Europe", "Africa", "Middle East", "S Asia", "NE Asia", "SE Asia", "Islands", "New Zealand"))
+
+#bar plot
+p1 = df1 %>%
+  ggplot() +
+  aes(x=Region, y=Proportion) +
+  geom_bar(stat="identity", fill = "#B6D7E6") +
+  labs(x="Arrival Region", y="Percentage of Total Flights (%)") +
+  ggtitle("Percentage of Total Outbound Flights from Australia by Region between 2003-2018") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), plot.title = element_text(size=11))
+ggplotly(p1) %>% 
+    layout(hoverlabel=list(bgcolor="white"))
+
+#percentage of total flights for SE Asia
+y=round(s$x[s$Category == "SE Asia"]*100/total, 2)
+```
+
+SE Asia makes up the largest portion of outgoing flights, with a share of `r y`% of total flights. Barring the fact that the data set lacks information on the total number of passengers, and thus assuming that the number of flights is proportional to the total number of passengers, developing tourist packages targeting Australian tourists traveling to this region shows great potential.
+
+```{r}
+#filtering
+seasia = flights %>%
+  filter(In_Out == "O") %>%
+  filter(Port_Region == "SE Asia") ##might not need this
+total=sum(seasia$All_Flights)
+
+brunei = seasia %>% filter(Port_Country == "Brunei")
+indonesia = seasia %>% filter (Port_Country == "Indonesia")
+malaysia = seasia %>% filter(Port_Country == "Malaysia")
+philippines = seasia %>% filter(Port_Country == "Philippines")
+singapore = seasia %>% filter(Port_Country == "Singapore")
+thailand = seasia %>% filter(Port_Country == "Thailand")
+vietnam = seasia %>% filter(Port_Country == "Vietnam")
+
+#creating variable
+country = c(rep("Brunei", times = sum(brunei$All_Flights)), rep("Indonesia", times = sum(indonesia$All_Flights)), rep("Malaysia", times = sum(malaysia$All_Flights)), rep("Philippines", times = sum(philippines$All_Flights)), rep("Singapore", times = sum(singapore$All_Flights)), rep("Thailand", times = sum(thailand$All_Flights)), rep("Vietnam", times = sum(vietnam$All_Flights))) %>%
+  fct_infreq()
+
+#creating data frame
+df2 = data.frame(country)
+
+#bar plot
+p3=df2 %>%
+  ggplot() +
+  aes(x=country) +
+  geom_bar(fill = "#8DDBA5") +
+  labs(x="Country of Arrival", y="Number of Flights") +
+  ggtitle("Number of Flights from Australia to SE Asia between 2003-2018") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), plot.title = element_text(size=11))
+ggplotly(p3, tooltip = c("count")) %>% 
+    layout(hoverlabel=list(bgcolor="white"))
+  
+#Singapore count
+k=sum(singapore$All_Flights)
+```
+
+Of these SE Asian countries, Singapore had the largest number of inbound flights from Australia, with `r k` flights traveling from Australia to Singapore between 2003-2018. 
+
+In addition to the assumption that number of flights reflects the total number of passengers, it is important to note that not all passengers traveling to Singapore are traveling for tourism reasons. Passengers may be visiting family, traveling for employment or education, be in transit or may even be a return passenger. The data set presented does not allow us to distinguish the reasons for travel.
+
+Regardless, Singapore was found to be the third most popular intended tourist destination in Asia among the Australian population in 2018, surpassed only by Japan and Indonesia (Morgan, 2018). Hence, investment in Singapore travel would likely boost growth of Adventure World Travel.
+
+```{r, message=FALSE}
+sing = flights %>%
+  filter(In_Out == "O") %>%
+  filter(Port_Country == "Singapore") %>%
+  filter(!Year %in% c("2003", "2004", "2005", "2018"))
+
+s1 = aggregate(sing$All_Flights, by=list(Category=sing$Year), FUN=sum) %>%
+  rename(Year=Category, Flights=x)
+
+#scatter plot
+p2=s1 %>%
+  ggplot() +
+  aes(x=Year, y=Flights) +
+  geom_point() +
+  geom_smooth(method=lm, se=F, colour="#B28DDB", size=0.5) +
+  labs(x="Year", y="Number of Flights") +
+  ggtitle("Number of Flights from Australia to Singapore Over Time") +
+  scale_x_continuous(breaks=c(2006,2008,2010,2012,2014,2016))
+ggplotly(p2)
+```
+
+```{r, results='hide'}
+#linear model
+L=lm(s1$Flights~s1$Year)
+summary(L)
+intercept = signif(unname(L$coefficients[1]), 2)
+yearcoef = round(unname(L$coefficients[2]), 1)
+
+#correlation coefficient and p-value for regression test
+cc = round(cor(s1$Year, s1$Flights), 2)
+pv = signif(4.63*10^-06, 2)
+```
+Equation: $Total Flights = `r intercept` + `r yearcoef`Year$
+
+```{r, comment=NA}
+#Testing assumptions for Regression test
+##Residual plot
+ggplot(s1, aes(x=Year, y=L$residuals)) + 
+  geom_point() + 
+  geom_hline(yintercept=0, colour="#2471A3") + 
+  labs(x ="Year", y="Residuals") +
+  ggtitle("Residual Plot") + 
+  theme(plot.title = element_text(size=16)) +
+  scale_x_continuous(breaks=c(2006,2008,2010,2012,2014,2016))
+
+##QQ plot
+s1 %>%
+  ggplot() + 
+  aes(sample=Flights) +
+  stat_qq() +
+  stat_qq_line(colour = "#CF8DDB") +
+  ggtitle("QQ plot")
+
+##Shapiro-Wilk Test
+shapiro.test(s1$Flights)
+```
+
+Inconsistencies and incompleteness in data collection were noted in 2003, 2004, 2005 and 2018, where data in several months were not recorded. 
+
+Disregarding these years, there appears to be a linear relationship in the total flights from Australia to Singapore over time, with a strong positive correlation coefficient of `r cc`. The Shapiro-Wilk test also returned a p-value of 0.3623>0.05. In addition to this, the lack of obvious pattern in the residual plot, and the reasonably straight line observed in the Q-Q plot indicates that the data is likely normally distributed, independent and homoscedastic. Hence, using a regression test, a t-value of 8.889 and a p-value of 4.63×10^-6^>0.05 were observed, suggesting that total flights traveling from Australia to Singapore per year have been increasing.
+
+Data collected by Budget Direct Insurance (2019) supports this, demonstrating consistent growth in tourist numbers in Singapore from 2008 through to 2018. 
+
+The data indicates that there is increasing interest in Singapore as a tourist destination. Adventure World Travel would therefore likely benefit from expanding its travel plans and deals to include Singapore.
+
+<br>
+
+# Other Evidence 
+Integrated into evidence section
+
+# Reflection
+
+DATA1001 has taught me how to critically analyse data, enabling me to draw insightful conclusions from large data sets for the report and concisely communicate these conclusions whilst acknowledging limitations. These skills will be useful for Medical Science, which will involve the collection and interpretation of large data sets.
+
+# References
+
+Budget Direct Insurance. (2019). Singapore Tourism Statistics 2020. Retrieved from https://www.budgetdirect.com.sg/travel-insurance/research/singapore-tourism-statistics
+
+Morgan, R. (2018). Overseas travel intentions rise steadily, but not to China. Retrieved from http://www.roymorgan.com/findings/7656-australian-travel-intention-to-asia-march-2018-201807130810 
+
+# Acknowledgements
+
+Leone, L., and Harianto, J. (2020). Evidence appropriate to client. [Blog]. *DATA1001 - Discussion*, Available at: <https://edstem.org/courses/4447/discussion/346569?comment=798383> [Accessed 19 November 2020]
+
+Ross, J., and Harris, J. (2020). Referencing Ed responses. [Blog]. *DATA1001 - Discussion*, Available at: <https://edstem.org/courses/4447/discussion/338357?answer=780325> [Accessed 19 November 2020]
+
+Saifbudi, H., and Leone, L. (2020). How to sum a column conditional on another column. [Blog]. *DATA1001 - Discussion*, Available at:  <https://edstem.org/courses/4447/discussion/350007?answer=803553> [Accessed 18 November 2020].
+
+
+
