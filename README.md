@@ -1,3 +1,4 @@
 # Australian-Tourism-in-Singapore
 
-Addressing Neil Rodgers, managing director of Adventure World Travel. Analysis of flight data has revealed that a large portion of Australians travel to Singapore, with increases being observed over time. Expansion into the Singaporean sector will therefore foster growth in the business and will greatly benefit Australian tourists.
+An individual project based on flight data, aimed at the tourism industry. The report was produced as a .html document with code folding from an R markdown document.
+Unit: Foundations of Data Science.
